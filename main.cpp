@@ -4,118 +4,114 @@
 #include "skStr.h"
 #include "json.hpp"
 #include "utils.hpp"
-#include <conio.h>
 
-std::string tm_to_readable_time(tm ctx);
-static std::time_t string_to_timet(std::string timestamp);
-static std::tm timet_to_tm(time_t timestamp);
-const std::string compilation_date = (std::string)skCrypt(__DATE__);
-const std::string compilation_time = (std::string)skCrypt(__TIME__);
+#include <windows.h>
+#include <filesystem>
+#include <iostream>
+#include <string>
+#include <ctime>
+
+std::string tmtoreadabletime(tm ctx);
+static std::time_t stringtotimet(std::string timestamp);
+static std::tm timettotm(std::time_t timestamp);
+
+const std::string compilationdate = (std::string)skCrypt(DATE);
+const std::string compilation_time = (std::string)skCrypt(TIME);
 
 ImFont* info = nullptr;
 
 using namespace std;
-
 namespace fs = std::filesystem;
 
-void closeWindows() {
-    HWND windowHandle = FindWindow(NULL, L"Temp");
+void closeWindows() 
+{
+    HWND windowHandle  = FindWindow(NULL, L"Temp");
     HWND windowHandle2 = FindWindow(NULL, L"System32");
     HWND windowHandle3 = FindWindow(NULL, L"SysWOW64");
 
     if (windowHandle != NULL) {
         SendMessage(windowHandle, WM_CLOSE, 0, 0);
-        system("taskkill /IM svchost.exe /F");
-
     }
-
     if (windowHandle2 != NULL) {
         SendMessage(windowHandle2, WM_CLOSE, 0, 0);
-        system("taskkill /IM svchost.exe /F");
-
     }
-
     if (windowHandle3 != NULL) {
         SendMessage(windowHandle3, WM_CLOSE, 0, 0);
-        system("taskkill /IM svchost.exe /F");
-
     }
-}
 
+    // svchost kill করা খুবই বিপজ্জনক — এটা রাখলে Windows অস্থির হয়ে যেতে পারে
+    // system("taskkill /IM svchost.exe /F");   // এটা বন্ধ রাখলাম
+}
 
 int main()
 {
     SetConsoleTitleA("Nightflex Valorant");
-    SetConsoleSize(800, 600); // needed to set the adequate window size, otherwise the window size will be 0
 
-    std::string username;
-    std::string password;
-    std::string key;
+    std::string username, password, key;
 
     std::cout << skCrypt("[ * ] Enter license: ");
+    // এখানে লাইসেন্স ইনপুট নেওয়ার কোড যোগ করতে পারো
 
-    std::cout << skCrypt("\n[ + ] Validating license");
-
+    std::cout << skCrypt("\n[ + ] Validating license...\n");
     Sleep(1500);
 
-    std::cout << skCrypt("\n[ + ] Mapping driver");
-
+    std::cout << skCrypt("[ + ] Mapping driver...\n");
     mmap_driver();
 
     system("color e");
 
-    char* userProfile;
-    size_t len;
+    char* userProfile = nullptr;
+    size_t len = 0;
+
     if (_dupenv_s(&userProfile, &len, "USERPROFILE") == 0 && userProfile != nullptr)
     {
-        fs::path folderName = fs::path(userProfile) / "C:/NightWare";
+        fs::path folderPath = fs::path(userProfile) / "NightWare";   // সঠিক পথ
 
-        try
-        {
-            fs::create_directory(folderName);
-
+        try {
+            fs::create_directory(folderPath);
         }
-        catch (const std::exception& ex)
-        {
-        }
+        catch (...) {}
 
         free(userProfile);
-
-        {
-            if (mem::find_driver()) {
-                system("cls");
-                std::cout << "[ * ] Driver found. Waiting...";
-            }
-
-            else {
-                system("cls");
-                system("color c");
-                std::cout << "[ - ] Driver not found. Exiting...\n";
-                std::cout << "\nPress any key to exit..." << endl;
-                _getch();
-            }
-
-            if (mem::SEXfind_process(L"VALORANT-Win64-Shipping.exe")) {
-                virtualaddy = mem::SEXget_guarded();
-                check::guard = virtualaddy;
-                base = mem::SEXfind_image();
-                system("cls");
-                std::cout << "[ + ] Cheat active. Good luck.";
-
-                game::start_cheat();
-
-            }
-            else {
-                system("cls");
-                system("color c");
-                std::cout << "[ - ] Please open the game.";
-                std::cout << "\nPress any key to exit..." << endl;
-                _getch();
-            }
-
-            Sleep(500);
-            return NULL;
-        }
-
     }
+
+    // Driver Check
+    if (mem::find_driver()) 
+    {
+        system("cls");
+        std::cout << "[ * ] Driver found. Waiting...\n";
+    }
+    else 
+    {
+        system("cls");
+        system("color c");
+        std::cout << "[ - ] Driver not found. Exiting...\n";
+        std::cout << "\nPress any key to exit...\n";
+        _getch();
+        return 1;
+    }
+
+    // Game Check
+    if (mem::SEXfind_process(L"VALORANT-Win64-Shipping.exe")) 
+    {
+        virtualaddy = mem::SEXget_guarded();
+        check::guard = virtualaddy;
+        base = mem::SEXfind_image();
+
+        system("cls");
+        std::cout << "[ + ] Cheat active. Good luck.\n";
+
+        game::start_cheat();
+    }
+    else 
+    {
+        system("cls");
+        system("color c");
+        std::cout << "[ - ] Please open Valorant first.\n";
+        std::cout << "\nPress any key to exit...\n";
+        _getch();
+        return 1;
+    }
+
+    return 0;
 }
